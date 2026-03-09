@@ -7,10 +7,13 @@ import click
 import jinja2
 
 
+# Resolve the project root, defaulting to cwd. Override with VIBE_ROOT env var.
 def get_root() -> Path:
     return Path(os.environ.get("VIBE_ROOT", "."))
 
 
+# Recursively flatten a nested dict into dot-separated key paths,
+# e.g. {"a": {"b": 1}} -> ["a.b"]. Used to display context variables.
 def _flatten_keys(d: dict, prefix: str = "") -> list[str]:
     """Flatten nested dict keys into dot-separated paths."""
     keys = []
@@ -23,6 +26,9 @@ def _flatten_keys(d: dict, prefix: str = "") -> list[str]:
     return keys
 
 
+# Build a nested dict of context variables from .j2 files under context/.
+# Directory structure maps to dot-separated template variable names:
+# context/company/name.j2 becomes {{ company.name }}.
 def load_context(context_dir: Path) -> dict:
     """Load all .j2 files from context/ into nested dicts.
 
@@ -32,6 +38,8 @@ def load_context(context_dir: Path) -> dict:
     context: dict = {}
     for path in context_dir.rglob("*.j2"):
         parts = list(path.relative_to(context_dir).with_suffix("").parts)
+
+        # Walk into nested dicts, creating intermediate levels as needed.
         node = context
         for part in parts[:-1]:
             node = node.setdefault(part, {})
@@ -39,6 +47,7 @@ def load_context(context_dir: Path) -> dict:
     return context
 
 
+# Shell completion callback — returns template names matching the user's input.
 def complete_template(ctx, param, incomplete):
     """Provide shell completion for template names."""
     root = get_root()
@@ -54,8 +63,12 @@ def complete_template(ctx, param, incomplete):
 
 @click.command()
 @click.argument("template", required=False, shell_complete=complete_template)
-@click.option("--list", "-l", "list_templates", is_flag=True, help="List available templates.")
-@click.option("--out", "-o", type=click.Path(), help="Write output to file instead of stdout.")
+@click.option(
+    "--list", "-l", "list_templates", is_flag=True, help="List available templates."
+)
+@click.option(
+    "--out", "-o", type=click.Path(), help="Write output to file instead of stdout."
+)
 def main(template: str | None, list_templates: bool, out: str | None):
     """Render prompt templates with shared context.
 
@@ -65,6 +78,7 @@ def main(template: str | None, list_templates: bool, out: str | None):
     templates_dir = root / "templates"
     context_dir = root / "context"
 
+    # Set up Jinja2 with strict undefined to catch missing variables early.
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(templates_dir),
         keep_trailing_newline=True,
@@ -73,6 +87,7 @@ def main(template: str | None, list_templates: bool, out: str | None):
     context = load_context(context_dir)
     available = sorted(templates_dir.rglob("*.j2"))
 
+    # --list: print all template names and context variable paths, then exit.
     if list_templates:
         click.echo("Templates:")
         for p in available:
@@ -86,6 +101,7 @@ def main(template: str | None, list_templates: bool, out: str | None):
     def rel_name(p: Path) -> str:
         return str(p.relative_to(templates_dir).with_suffix(""))
 
+    # Render the named template, validating it exists first.
     if template:
         names = {rel_name(p) for p in available}
         if template not in names:
@@ -97,6 +113,7 @@ def main(template: str | None, list_templates: bool, out: str | None):
     else:
         raise click.UsageError("Provide a TEMPLATE name or --list.")
 
+    # Write rendered output to a file or stdout.
     if out:
         Path(out).write_text(output)
         click.echo(f"Written to {out}")

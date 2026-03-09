@@ -1,7 +1,5 @@
 """Tests for the vibe CLI."""
 
-from pathlib import Path
-
 from click.testing import CliRunner
 
 from vibe.cli import _flatten_keys, load_context, main
@@ -115,7 +113,6 @@ class TestRenderTemplate:
         root = _make_project(tmp_path, templates={"a.j2": "hi"})
         result = _invoke(root=root)
         assert result.exit_code != 0
-
 
 
 class TestList:
