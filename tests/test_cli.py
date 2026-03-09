@@ -117,22 +117,6 @@ class TestRenderTemplate:
         assert result.exit_code != 0
 
 
-class TestRenderAll:
-    def test_renders_all_sorted(self, tmp_path):
-        root = _make_project(
-            tmp_path,
-            context={"x.j2": "val"},
-            templates={
-                "b.j2": "second {{ x }}",
-                "a.j2": "first {{ x }}",
-            },
-        )
-        result = _invoke("--all", root=root)
-        assert result.exit_code == 0
-        assert "first val" in result.output
-        assert "second val" in result.output
-        assert result.output.index("first") < result.output.index("second")
-
 
 class TestList:
     def test_lists_templates_and_context(self, tmp_path):

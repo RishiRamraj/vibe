@@ -37,9 +37,6 @@ dot-separated names: `context/company/name.j2` → `{{ company.name }}`.
 # Render a single template
 vibe attention
 
-# Render all templates
-vibe --all
-
 # List available templates and context variables
 vibe --list
 

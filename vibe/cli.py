@@ -55,9 +55,8 @@ def complete_template(ctx, param, incomplete):
 @click.command()
 @click.argument("template", required=False, shell_complete=complete_template)
 @click.option("--list", "-l", "list_templates", is_flag=True, help="List available templates.")
-@click.option("--all", "-a", "render_all", is_flag=True, help="Render all templates.")
 @click.option("--out", "-o", type=click.Path(), help="Write output to file instead of stdout.")
-def main(template: str | None, list_templates: bool, render_all: bool, out: str | None):
+def main(template: str | None, list_templates: bool, out: str | None):
     """Render prompt templates with shared context.
 
     TEMPLATE is the name of a template to render (without .j2 extension).
@@ -87,13 +86,7 @@ def main(template: str | None, list_templates: bool, render_all: bool, out: str 
     def rel_name(p: Path) -> str:
         return str(p.relative_to(templates_dir).with_suffix(""))
 
-    if render_all:
-        parts = []
-        for p in available:
-            tmpl = env.get_template(str(p.relative_to(templates_dir)))
-            parts.append(tmpl.render(context))
-        output = "\n\n".join(parts)
-    elif template:
+    if template:
         names = {rel_name(p) for p in available}
         if template not in names:
             raise click.UsageError(
@@ -102,7 +95,7 @@ def main(template: str | None, list_templates: bool, render_all: bool, out: str 
         tmpl = env.get_template(f"{template}.j2")
         output = tmpl.render(context)
     else:
-        raise click.UsageError("Provide a TEMPLATE name, --all, or --list.")
+        raise click.UsageError("Provide a TEMPLATE name or --list.")
 
     if out:
         Path(out).write_text(output)
